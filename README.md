@@ -1,4 +1,4 @@
-These python files are wrappers on the ELTK python2 library:
+These python files are wrappers on the ELTK python2 library (sofarrar/e-linguistics):
 
 http://uakari.ling.washington.edu/e-linguistics/eltk.html
 
