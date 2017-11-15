@@ -1,0 +1,20 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+import sys
+from subprocess import check_output
+import re
+
+def ipa_to_tipa(matchobj):
+    chars = matchobj.groups()[0]
+    newchars = check_output(["detipafy", chars]).decode('utf-8')
+    return newchars.strip("\n") + "% was:\\textipa{"+chars+"}\n"
+
+try:
+    flow = open(sys.argv[1],"r",encoding="utf8")
+except IndexError:
+    flow = sys.stdin
+
+for line in flow:
+    newline = re.sub(r"\\textipa{(.+?)}",ipa_to_tipa,line.strip("\n"))
+    print(newline)
+flow.close()

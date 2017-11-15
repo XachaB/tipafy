@@ -1,0 +1,15 @@
+#!/usr/bin/python
+import sys
+import eltk
+from eltk.utils.CharConverter import CharConverter
+from eltk.utils.functions import tipaClean
+
+try:
+    chars = sys.argv[1]
+except IndexError:
+    chars = "\n".join(sys.stdin.readlines()).strip("\n")
+
+latex_converter=CharConverter('uni','tipa')
+doc = latex_converter.convert(chars)
+final = "\\textipa{" + doc + "}"
+print final

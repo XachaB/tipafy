@@ -1,0 +1,91 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import sys
+import eltk
+from eltk.utils.CharConverter import *
+from eltk.utils.functions import *
+import codecs
+import unicodedata
+import re
+open = codecs.open
+tipa_converter=CharConverter('uni','tipa')
+latex_converter=CharConverter('uni','latex')
+other_converter = {"⇌":"$\\rightleftharpoons$"," ":" "}
+
+def ipa_to_tipa(chars):
+    doc = tipa_converter.convert(chars)
+    #doc = eltk.utils.functions.tipaclean(doc)
+    if str(doc) != str(chars):
+        return u"\\textipa{" + doc.decode("utf-8") + u"}"
+    else:
+        doc = latex_converter.convert(doc)
+        for x in other_converter:
+            doc = doc.replace(x,other_converter[x])
+        if str(doc) == str(chars):
+            doc = ""
+            changed = []
+            for char in chars.decode("utf-8"):
+                if ord(char) > 256:
+                    doc += unicodedata.normalize('NFKD',char).encode('ascii', 'ignore')
+                    changed.append(unicodedata.name(char))
+                else:
+                    doc += char
+            doc += u"\n% Warning ! Normalized characters: " + u", ".join(changed) + u"\n"
+        return doc
+
+def char_in_extra_latin_range(char):
+    """Test if the char is in any of the following blocks:
+
+    0080..00FF; Latin-1 Supplement <- from 128
+    0100..017F; Latin Extended-A
+    0180..024F; Latin Extended-B
+    0250..02AF; IPA Extensions
+    02B0..02FF; Spacing Modifier Letters
+    0300..036F; Combining Diacritical Marks    <- to 879
+    2C60..2C7F; Latin Extended-C  <- (11360, 11391)
+    A720..A7FF; Latin Extended-D  <- (42784, 43007)
+    """
+    ranges = [(128, 879), (11360, 11391), (42784, 43007)]
+    i = ord(char)
+    return any(x<=i<=y for x,y in ranges)
+
+def is_phonetic_notation(token):
+    signalled_as_ipa = (len(token)>2 and token.startswith(u"/") and token.endswith(u"/"))
+    char_is_ipa = any(char_in_extra_latin_range(c) for c in token)
+    return  signalled_as_ipa or char_is_ipa
+
+try:
+    flow = open(sys.argv[1],"r","utf8")
+except IndexError:
+    flow = sys.stdin
+
+indocument = False
+tipa = False
+for line in flow:
+    line = line.strip(u"\n")
+    if not indocument:
+        if u"\\usepackage{tipa}" in line:
+            tipa = True
+        if u"\\begin{document}" in line:
+            if not tipa:
+                print "\\usepackage{tipa}"
+            indocument=True
+        print line.encode('utf-8')
+    else:
+        elts = re.split(r"(?<!\\)\%",line,maxsplit=1)
+        line = elts[0]
+        comments = ""
+        if len(elts)>1:
+            comments = "%"+elts[1]
+        newline = re.split(u'([^\\\{\}$ \[\]\(\)\<\>!.,;:-_?"%\']+)',line)
+        for i,token in enumerate(newline):
+            if is_phonetic_notation(token) :
+                newline[i] = ipa_to_tipa(token.encode("utf8"))
+        newline.append(comments)
+        try:
+            print u"".join(newline).encode('utf-8')
+        except:
+            print("ERROR:",newline)
+            raise
+
+flow.close()

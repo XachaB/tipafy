@@ -1,0 +1,19 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import sys
+
+import eltk
+from eltk.utils.CharConverter import *
+from eltk.utils.functions import *
+import re
+
+try:
+    chars = sys.argv[1]
+except IndexError:
+    chars = "\n".join(sys.stdin.readlines()).strip("\n")
+
+latex_converter=CharConverter('tipa','uni')
+chars = re.sub(r"\\textipa{(.+?)}",r"\1",chars)
+chars = re.sub(r"(\\~)\{?(.)\}? ?",r"\2\1",chars,re.UNICODE)
+chars = latex_converter.convert(chars)
+print chars
